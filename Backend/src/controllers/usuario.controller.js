@@ -6,40 +6,32 @@ export const crearUsuario = async (req, res) => {
   const { nombre, rut, matricula, departamento, foto, autorizado } = req.body;
 
   try {
-    // Validar campos obligatorios
     if (!nombre || !rut || !matricula) {
-      return res.status(400).json({
-        error: "Faltan campos obligatorios"
-      });
+      return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    // Validar RUT
     if (!validarRUT(rut)) {
-      return res.status(400).json({
-        error: "RUT inválido"
-      });
+      return res.status(400).json({ error: "RUT inválido" });
     }
 
-    // Limpiar RUT (guardar sin puntos ni DV)
     const rutLimpio = rut.split('-')[0].replace(/\./g, '');
 
-    // Insertar en DB
-    await db.insert(usuarios).values({
+    const nuevo = await db.insert(usuarios).values({
       nombre,
       rut: rutLimpio,
       matricula,
       departamento,
       foto,
       autorizado
-    });
+    }).returning();
 
     return res.status(201).json({
-      mensaje: "Usuario creado correctamente"
+      mensaje: "Usuario creado correctamente",
+      usuario: nuevo
     });
 
   } catch (error) {
-    res.status(500).json({
-      error: "Error al crear usuario"
-    });
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 };

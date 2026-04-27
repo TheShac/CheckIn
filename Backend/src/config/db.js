@@ -1,14 +1,14 @@
-import mysql from 'mysql2/promise';
-import { drizzle } from 'drizzle-orm/mysql2';
 import dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import pkg from 'pg';
 
 dotenv.config();
 
-const connection = await mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+const { Pool } = pkg;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  
 });
 
-export const db = drizzle(connection);
+export const db = drizzle(pool);

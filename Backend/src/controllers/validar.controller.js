@@ -12,10 +12,7 @@ export const validar = async (req, res) => {
     if (dato.includes('-')) {
 
       if (!validarRUT(dato)) {
-        return res.json({
-          autorizado: false,
-          mensaje: "RUT inválido"
-        });
+        return res.json({ autorizado: false, mensaje: "RUT inválido" });
       }
 
       const rutLimpio = dato.split('-')[0].replace(/\./g, '');
@@ -50,6 +47,6 @@ export const validar = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ error: "Error interno" });
+    res.status(500).json({ error: error.message });
   }
 };

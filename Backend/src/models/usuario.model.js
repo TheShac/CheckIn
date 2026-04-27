@@ -1,7 +1,7 @@
-import { mysqlTable, varchar, int, boolean, text } from 'drizzle-orm/mysql-core';
+import { pgTable, varchar, integer, boolean, text } from 'drizzle-orm/pg-core';
 
-export const usuarios = mysqlTable('usuarios', {
-  id: int('id').primaryKey().autoincrement(),
+export const usuarios = pgTable('usuarios', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   nombre: varchar('nombre', { length: 100 }),
   rut: varchar('rut', { length: 20 }),
   matricula: varchar('matricula', { length: 20 }),
