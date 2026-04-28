@@ -1,10 +1,11 @@
-import { db } from '../config/db.js';
+import { db, findByMatricula, findByRut } from '../config/db.js';
 import { usuarios } from '../models/usuario.model.js';
 import { eq } from 'drizzle-orm';
 import { validarRUT } from '../utils/rut.js';
 
 export const validar = async (req, res) => {
   const { dato } = req.query;
+  const replicaId = process.env.REPLICA_ID || 'default';
 
   try {
     let usuario = null;
@@ -12,41 +13,34 @@ export const validar = async (req, res) => {
     if (dato.includes('-')) {
 
       if (!validarRUT(dato)) {
-        return res.json({ autorizado: false, mensaje: "RUT inválido" });
+        return res.json({ autorizado: false, mensaje: "RUT inválido", 
+        procesadorPor: `Réplica ${replicaId}` });
       }
 
       const rutLimpio = dato.split('-')[0].replace(/\./g, '');
-
-      const resultado = await db
-        .select()
-        .from(usuarios)
-        .where(eq(usuarios.rut, rutLimpio));
-
-      usuario = resultado[0];
+      usuario = findByRut(rutLimpio);
 
     } else {
-
-      const resultado = await db
-        .select()
-        .from(usuarios)
-        .where(eq(usuarios.matricula, dato));
-
-      usuario = resultado[0];
+      // Es Matrícula
+      usuario = findByMatricula(dato);
     }
 
     if (!usuario || !usuario.autorizado) {
       return res.json({
         autorizado: false,
-        mensaje: "No autorizado"
+        mensaje: "No autorizado", 
+        procesadorPor: `Réplica ${replicaId}`
       });
     }
 
     return res.json({
       autorizado: true,
-      usuario
+      usuario, 
+      procesadorPor: `Réplica ${replicaId}`
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, 
+        procesadorPor: `Réplica ${replicaId}` });
   }
 };
