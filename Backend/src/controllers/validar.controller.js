@@ -1,5 +1,6 @@
 import { db } from '../config/db.js';
 import { usuarios } from '../models/usuario.model.js';
+import { logs } from '../models/log.model.js';
 import { eq } from 'drizzle-orm';
 import { validarRUT } from '../utils/rut.js';
 
@@ -7,12 +8,26 @@ export const validar = async (req, res) => {
   const { dato } = req.query;
 
   try {
-    let usuario = null;
+    if (!dato) {
+      return res.status(400).json({ error: "Debe enviar un dato" });
+    }
 
-    if (dato.includes('-')) {
+    let usuario = null;
+    let metodo = '';
+
+    // 🔥 Detectar si es RUT por formato real (NO por el guión)
+    const esRut = /^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/.test(dato);
+
+    if (esRut) {
+
+      metodo = 'RUT';
 
       if (!validarRUT(dato)) {
-        return res.json({ autorizado: false, mensaje: "RUT inválido" });
+        return res.json({
+          autorizado: false,
+          mensaje: "RUT inválido",
+          replica: res.locals.replicaId
+        });
       }
 
       const rutLimpio = dato.split('-')[0].replace(/\./g, '');
@@ -26,27 +41,45 @@ export const validar = async (req, res) => {
 
     } else {
 
+      metodo = 'PATENTE';
+
+      const datoNormalizado = dato.toUpperCase().trim();
+
       const resultado = await db
         .select()
         .from(usuarios)
-        .where(eq(usuarios.matricula, dato));
+        .where(eq(usuarios.matricula, datoNormalizado));
 
       usuario = resultado[0];
     }
 
-    if (!usuario || !usuario.autorizado) {
+    const autorizado = usuario && usuario.autorizado ? true : false;
+
+    // 🔥 LOG DE ACCESO
+    await db.insert(logs).values({
+      usuario_id: usuario ? usuario.id : null,
+      metodo,
+      dato,
+      autorizado,
+      replica_id: res.locals.replicaId
+    });
+
+    if (!autorizado) {
       return res.json({
         autorizado: false,
-        mensaje: "No autorizado"
+        mensaje: "No autorizado",
+        replica: res.locals.replicaId
       });
     }
 
     return res.json({
       autorizado: true,
-      usuario
+      usuario,
+      replica: res.locals.replicaId
     });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };
